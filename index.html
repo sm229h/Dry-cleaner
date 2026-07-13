@@ -1,0 +1,422 @@
+
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+							<style>
+								body {
+									background-color: white; /* Ensure the iframe has a white background */
+								}
+
+								
+							</style>
+                        </head>
+                        <body>
+                            <!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>پاکشو | خشکشویی و اتوشویی آنلاین</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Vazirmatn', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#eff6ff',100:'#dbeafe',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Vazirmatn', sans-serif; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .fade-in { animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 pb-20 md:pb-0">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white text-xl">🫧</div>
+        <span class="text-xl font-extrabold text-brand-700">پاکشو</span>
+      </div>
+      <nav id="desktop-nav" class="hidden md:flex items-center gap-6 text-sm font-medium"></nav>
+      <div class="flex items-center gap-2">
+        <select id="role-switch" onchange="setRole(this.value)"
+          class="text-xs md:text-sm border rounded-xl px-2 py-2 bg-slate-50 cursor-pointer">
+          <option value="customer">👤 مشتری</option>
+          <option value="admin">🛠️ ادمین</option>
+          <option value="operator">🚚 پیک</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="max-w-6xl mx-auto px-4 py-8"></main>
+
+  <footer class="bg-white border-t mt-12 hidden md:block">
+    <div class="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-slate-500">
+      نمونه دمو — پاکشو خشکشویی و اتوشویی آنلاین © 1405
+    </div>
+  </footer>
+
+  <nav id="mobile-nav" class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t z-40 flex justify-around items-center h-16"></nav>
+
+  <div id="toast" class="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-5 py-3 rounded-xl text-sm shadow-lg opacity-0 pointer-events-none transition-opacity z-50"></div>
+
+<script>
+/* ================= داده‌های نمونه ================= */
+const services = [
+  { id:'normal', name:'شستشوی عادی', icon:'🧺', factor:1 },
+  { id:'iron',   name:'اتوشویی',     icon:'👔', factor:0.7 },
+  { id:'dry',    name:'خشکشویی',     icon:'✨', factor:1.5 },
+  { id:'special',name:'شستشوی ویژه', icon:'💎', factor:2 },
+];
+const items = [
+  { id:'shirt',  name:'پیراهن',     icon:'👕', price:45000 },
+  { id:'pants',  name:'شلوار',      icon:'👖', price:55000 },
+  { id:'coat',   name:'کت',         icon:'🧥', price:90000 },
+  { id:'blanket',name:'پتو',        icon:'🛏️', price:150000 },
+  { id:'curtain',name:'پرده',       icon:'🪟', price:120000 },
+  { id:'dress',  name:'لباس مجلسی', icon:'👗', price:180000 },
+];
+const plans = [
+  { name:'برنزی',  price:'۲۹۰٬۰۰۰', period:'ماهانه', perks:['۱۰٪ تخفیف روی همه سفارش‌ها','ارسال رایگان بالای ۳۰۰ هزار تومان'] },
+  { name:'نقره‌ای',price:'۴۹۰٬۰۰۰', period:'ماهانه', perks:['۲۰٪ تخفیف روی همه سفارش‌ها','ارسال رایگان نامحدود','اولویت در تحویل'], popular:true },
+  { name:'طلایی',  price:'۷۹۰٬۰۰۰', period:'ماهانه', perks:['۳۰٪ تخفیف روی همه سفارش‌ها','ارسال رایگان نامحدود','پیک اختصاصی','خشکشویی ویژه رایگان'] },
+];
+
+const STATUS = {
+  pending:          { label:'ثبت شده',         color:'bg-slate-100 text-slate-700' },
+  confirmed:        { label:'تایید شده',       color:'bg-blue-100 text-blue-700' },
+  picked_up:        { label:'دریافت توسط پیک', color:'bg-indigo-100 text-indigo-700' },
+  processing:       { label:'در حال شستشو',    color:'bg-amber-100 text-amber-700' },
+  ready:            { label:'آماده تحویل',     color:'bg-purple-100 text-purple-700' },
+  out_for_delivery: { label:'در مسیر تحویل',   color:'bg-cyan-100 text-cyan-700' },
+  delivered:        { label:'تحویل داده شد',   color:'bg-green-100 text-green-700' },
+  cancelled:        { label:'لغو شده',         color:'bg-red-100 text-red-700' },
+};
+const STATUS_FLOW = ['pending','confirmed','picked_up','processing','ready','out_for_delivery','delivered'];
+
+let orders = [
+  { id:'1043', customer:'علی رضایی',  phone:'۰۹۱۲۱۱۱۲۲۳۳', date:'۱۴۰۳/۰۳/۱۲', total:210000, status:'delivered',        zone:'ونک',       assigned:true },
+  { id:'1052', customer:'مریم احمدی', phone:'۰۹۳۵۴۴۴۵۵۶۶', date:'۱۴۰۳/۰۳/۲۰', total:385000, status:'out_for_delivery', zone:'سعادت‌آباد', assigned:true },
+  { id:'1061', customer:'رضا کریمی',  phone:'۰۹۱۹۷۷۷۸۸۹۹', date:'۱۴۰۳/۰۳/۲۵', total:95000,  status:'processing',      zone:'ونک',       assigned:false },
+  { id:'1062', customer:'سارا موسوی', phone:'۰۹۳۰۱۲۳۴۵۶۷', date:'۱۴۰۳/۰۳/۲۶', total:540000, status:'confirmed',       zone:'جردن',      assigned:true },
+  { id:'1063', customer:'حسین نوری',  phone:'۰۹۱۰۹۸۷۶۵۴۳', date:'۱۴۰۳/۰۳/۲۶', total:120000, status:'pending',         zone:'ونک',       assigned:false },
+];
+
+const users = [
+  { id:1, name:'علی رضایی',  phone:'۰۹۱۲۱۱۱۲۲۳۳', orders:12, sub:'نقره‌ای', joined:'۱۴۰۲/۱۱' },
+  { id:2, name:'مریم احمدی', phone:'۰۹۳۵۴۴۴۵۵۶۶', orders:5,  sub:'—',       joined:'۱۴۰۳/۰۱' },
+  { id:3, name:'رضا کریمی',  phone:'۰۹۱۹۷۷۷۸۸۹۹', orders:8,  sub:'طلایی',   joined:'۱۴۰۲/۰۸' },
+  { id:4, name:'سارا موسوی', phone:'۰۹۳۰۱۲۳۴۵۶۷', orders:3,  sub:'—',       joined:'۱۴۰۳/۰۲' },
+];
+
+const discountCodes = [
+  { code:'PAK20',   percent:20, uses:45, active:true },
+  { code:'WELCOME', percent:15, uses:120,active:true },
+  { code:'PAK10',   percent:10, uses:88, active:false },
+];
+
+const zones = ['ونک','سعادت‌آباد','جردن','نیاوران','پونک','تجریش'];
+
+let role = 'customer';
+let cart = { service:'normal', items:{}, discount:0 };
+
+const fmt = n => Number(n).toLocaleString('fa-IR');
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.opacity=1;
+  setTimeout(function(){ t.style.opacity=0; },2200);
+}
+
+/* ================= منوها ================= */
+const NAVS = {
+  customer: [
+    { id:'home',        label:'خانه',     icon:'🏠' },
+    { id:'order',       label:'سفارش',    icon:'➕' },
+    { id:'track',       label:'پیگیری',   icon:'📍' },
+    { id:'history',     label:'سفارش‌ها', icon:'📋' },
+    { id:'subscription',label:'اشتراک',   icon:'⭐' },
+  ],
+  admin: [
+    { id:'adminDash',     label:'داشبورد',  icon:'📊' },
+    { id:'adminOrders',   label:'سفارش‌ها', icon:'📦' },
+    { id:'adminUsers',    label:'کاربران',  icon:'👥' },
+    { id:'adminPricing',  label:'قیمت‌ها',  icon:'💰' },
+    { id:'adminDiscounts',label:'تخفیف‌ها', icon:'🎟️' },
+  ],
+  operator: [
+    { id:'opTasks',   label:'سفارش‌های من', icon:'🚚' },
+    { id:'opHistory', label:'انجام‌شده',    icon:'✅' },
+  ],
+};
+
+function setRole(r){
+  role = r;
+  cart = { service:'normal', items:{}, discount:0 };
+  renderNavs();
+  go(NAVS[role][0].id);
+}
+
+function renderNavs(){
+  const nav = NAVS[role];
+  document.getElementById('desktop-nav').innerHTML = nav.map(function(n){
+    return '<a onclick="go(\''+n.id+'\')" data-nav="'+n.id+'" class="cursor-pointer hover:text-brand-600">'+n.label+'</a>';
+  }).join('');
+  document.getElementById('mobile-nav').innerHTML = nav.map(function(n){
+    return '<button onclick="go(\''+n.id+'\')" data-mnav="'+n.id+'" class="flex flex-col items-center justify-center gap-0.5 text-slate-500 flex-1 h-full">'+
+      '<span class="text-xl">'+n.icon+'</span><span class="text-[10px]">'+n.label+'</span></button>';
+  }).join('');
+}
+
+function markActive(page){
+  document.querySelectorAll('[data-nav]').forEach(function(a){
+    a.classList.toggle('text-brand-600', a.dataset.nav===page);
+    a.classList.toggle('font-bold', a.dataset.nav===page);
+  });
+  document.querySelectorAll('[data-mnav]').forEach(function(b){
+    const on = b.dataset.mnav===page;
+    b.classList.toggle('text-brand-600', on);
+    b.classList.toggle('text-slate-500', !on);
+  });
+}
+
+function go(page){
+  const app=document.getElementById('app');
+  app.innerHTML = views[page] ? views[page]() : '<div class="text-center py-20 text-slate-400">صفحه یافت نشد</div>';
+  app.classList.remove('fade-in'); void app.offsetWidth; app.classList.add('fade-in');
+  markActive(page);
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='order') refreshOrder();
+}
+
+/* ================= ویوها ================= */
+const views = {
+  home: function(){ return ''+
+    '<section class="rounded-3xl bg-gradient-to-l from-brand-600 to-brand-800 text-white p-8 md:p-12 mb-10">'+
+      '<h1 class="text-3xl md:text-4xl font-extrabold mb-3">لباس‌هات رو بسپار به ما 🫧</h1>'+
+      '<p class="text-brand-100 mb-6 leading-7">خشکشویی و اتوشویی آنلاین با دریافت و تحویل درب منزل. سفارش بده، بقیه‌ش با ما.</p>'+
+      '<button onclick="go(\'order\')" class="bg-white text-brand-700 font-bold px-6 py-3 rounded-xl hover:bg-brand-50">همین حالا سفارش بده</button>'+
+    '</section>'+
+    '<h2 class="text-xl font-bold mb-4">خدمات ما</h2>'+
+    '<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">'+
+      services.map(function(s){ return '<div class="bg-white rounded-2xl p-5 text-center shadow-sm hover:shadow-md transition cursor-pointer" onclick="cart.service=\''+s.id+'\'; go(\'order\')"><div class="text-4xl mb-2">'+s.icon+'</div><div class="font-bold">'+s.name+'</div></div>'; }).join('')+
+    '</div>'+
+    '<div class="grid md:grid-cols-3 gap-4">'+
+      [['۱','سفارش بده','خدمت و آیتم‌هات رو انتخاب کن'],['۲','پیک میاد','در زمان انتخابی لباس‌ها رو تحویل بگیر'],['۳','تحویل بگیر','لباس‌های تمیز درب منزل']].map(function(x){ return '<div class="bg-white rounded-2xl p-6 shadow-sm"><div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold flex items-center justify-center mb-3">'+x[0]+'</div><div class="font-bold mb-1">'+x[1]+'</div><div class="text-sm text-slate-500">'+x[2]+'</div></div>'; }).join('')+
+    '</div>';
+  },
+
+  order: function(){ return ''+
+    '<h2 class="text-2xl font-bold mb-6">ثبت سفارش جدید</h2>'+
+    '<div class="grid lg:grid-cols-3 gap-6"><div class="lg:col-span-2 space-y-6">'+
+      '<div class="bg-white rounded-2xl p-6 shadow-sm"><h3 class="font-bold mb-4">۱. نوع خدمت</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-3">'+
+        services.map(function(s){ return '<button onclick="cart.service=\''+s.id+'\'; refreshOrder()" data-service="'+s.id+'" class="service-btn border-2 rounded-xl p-3 text-center '+(cart.service===s.id?'border-brand-600 bg-brand-50':'border-slate-200')+'"><div class="text-2xl">'+s.icon+'</div><div class="text-sm font-medium mt-1">'+s.name+'</div></button>'; }).join('')+
+      '</div></div>'+
+      '<div class="bg-white rounded-2xl p-6 shadow-sm"><h3 class="font-bold mb-4">۲. انتخاب آیتم‌ها</h3><div class="space-y-3">'+
+        items.map(function(it){ return '<div class="flex items-center justify-between border rounded-xl p-3"><div class="flex items-center gap-3"><span class="text-2xl">'+it.icon+'</span><div><div class="font-medium">'+it.name+'</div><div class="text-xs text-slate-500">پایه: '+fmt(it.price)+' تومان</div></div></div><div class="flex items-center gap-2"><button onclick="changeQty(\''+it.id+'\',-1)" class="w-8 h-8 rounded-lg bg-slate-100 font-bold">−</button><span id="qty-'+it.id+'" class="w-6 text-center font-bold">'+(cart.items[it.id]||0)+'</span><button onclick="changeQty(\''+it.id+'\',1)" class="w-8 h-8 rounded-lg bg-brand-600 text-white font-bold">+</button></div></div>'; }).join('')+
+      '</div></div>'+
+      '<div class="bg-white rounded-2xl p-6 shadow-sm"><h3 class="font-bold mb-4">۳. آدرس و زمان</h3>'+
+        '<select class="w-full border rounded-xl p-3 mb-3 bg-white"><option>خانه — تهران، ونک، خیابان گاندی، پلاک ۱۲</option><option>محل کار — تهران، سعادت‌آباد، برج نگین</option><option>+ افزودن آدرس جدید</option></select>'+
+        '<div class="grid grid-cols-2 gap-3"><select class="border rounded-xl p-3 bg-white"><option>زمان دریافت: امروز ۱۶–۱۸</option><option>فردا ۹–۱۱</option><option>فردا ۱۸–۲۰</option></select><select class="border rounded-xl p-3 bg-white"><option>زمان تحویل: ۲ روز بعد</option><option>۳ روز بعد</option><option>تحویل فوری (۲۴ ساعته)</option></select></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="lg:col-span-1"><div class="bg-white rounded-2xl p-6 shadow-sm sticky top-20"><h3 class="font-bold mb-4">خلاصه سفارش</h3>'+
+      '<div id="summary" class="text-sm space-y-2 mb-4"></div>'+
+      '<div class="flex gap-2 mb-4"><input id="discount-input" placeholder="کد تخفیف" class="flex-1 border rounded-xl p-2 text-sm" /><button onclick="applyDiscount()" class="bg-slate-800 text-white text-sm px-3 rounded-xl">اعمال</button></div>'+
+      '<div id="total-box" class="border-t pt-4"></div>'+
+      '<button onclick="checkout()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl mt-4">پرداخت و ثبت سفارش</button>'+
+    '</div></div></div>';
+  },
+
+  track: function(){
+    const current='processing', idx=STATUS_FLOW.indexOf(current);
+    return '<h2 class="text-2xl font-bold mb-6">پیگیری سفارش</h2>'+
+    '<div class="bg-white rounded-2xl p-6 shadow-sm max-w-2xl">'+
+      '<div class="flex justify-between items-center mb-6"><div><div class="text-sm text-slate-500">شماره سفارش</div><div class="font-bold text-lg">#۱۰۶۱</div></div><span class="text-xs px-3 py-1 rounded-full '+STATUS[current].color+'">'+STATUS[current].label+'</span></div>'+
+      '<div class="space-y-1">'+
+        STATUS_FLOW.map(function(st,i){ return '<div class="flex items-center gap-3"><div class="flex flex-col items-center"><div class="w-4 h-4 rounded-full '+(i<=idx?'bg-brand-600':'bg-slate-200')+'"></div>'+(i<STATUS_FLOW.length-1?'<div class="w-0.5 h-8 '+(i<idx?'bg-brand-600':'bg-slate-200')+'"></div>':'')+'</div><div class="pb-6 '+(i<=idx?'font-bold text-slate-800':'text-slate-400')+'">'+STATUS[st].label+'</div></div>'; }).join('')+
+      '</div></div>';
+  },
+
+  history: function(){ return ''+
+    '<h2 class="text-2xl font-bold mb-6">سفارش‌های من</h2>'+
+    '<div class="bg-white rounded-2xl shadow-sm overflow-x-auto"><table class="w-full text-sm text-right whitespace-nowrap">'+
+      '<thead class="bg-slate-50 text-slate-500"><tr><th class="p-4">شماره</th><th class="p-4">تاریخ</th><th class="p-4">مبلغ (تومان)</th><th class="p-4">وضعیت</th><th class="p-4"></th></tr></thead><tbody>'+
+        orders.slice(0,3).map(function(o){ return '<tr class="border-t"><td class="p-4 font-bold">#'+o.id+'</td><td class="p-4">'+o.date+'</td><td class="p-4">'+fmt(o.total)+'</td><td class="p-4"><span class="text-xs px-3 py-1 rounded-full '+STATUS[o.status].color+'">'+STATUS[o.status].label+'</span></td><td class="p-4"><button onclick="go(\'track\')" class="text-brand-600 font-medium">پیگیری</button></td></tr>'; }).join('')+
+      '</tbody></table></div>';
+  },
+
+  subscription: function(){ return ''+
+    '<h2 class="text-2xl font-bold mb-2">پلن‌های اشتراک</h2>'+
+    '<p class="text-slate-500 mb-6">با اشتراک، روی همه سفارش‌ها تخفیف بگیر و از ارسال رایگان لذت ببر.</p>'+
+    '<div class="grid md:grid-cols-3 gap-6">'+
+      plans.map(function(p){ return '<div class="bg-white rounded-2xl p-6 shadow-sm border-2 '+(p.popular?'border-brand-600 relative':'border-transparent')+'">'+(p.popular?'<span class="absolute -top-3 right-6 bg-brand-600 text-white text-xs px-3 py-1 rounded-full">محبوب‌ترین</span>':'')+'<div class="font-bold text-lg mb-1">'+p.name+'</div><div class="mb-4"><span class="text-2xl font-extrabold">'+p.price+'</span> <span class="text-sm text-slate-500">تومان / '+p.period+'</span></div><ul class="space-y-2 text-sm mb-6">'+p.perks.map(function(k){ return '<li class="flex items-center gap-2"><span class="text-green-600">✔</span> '+k+'</li>'; }).join('')+'</ul><button onclick="toast(\'اشتراک '+p.name+' انتخاب شد (دمو)\')" class="w-full '+(p.popular?'bg-brand-600 hover:bg-brand-700 text-white':'bg-slate-100 hover:bg-slate-200')+' font-bold py-3 rounded-xl">انتخاب پلن</button></div>'; }).join('')+
+    '</div>';
+  },
+
+  adminDash: function(){
+    const revenue = orders.reduce(function(a,o){ return a+o.total; },0);
+    const pending = orders.filter(function(o){ return o.status==='pending'; }).length;
+    const active = orders.filter(function(o){ return o.status!=='delivered' && o.status!=='cancelled'; }).length;
+    const cards = [
+      ['سفارش‌های امروز', fmt(orders.length), '📦', 'bg-blue-50 text-blue-700'],
+      ['فروش کل (تومان)', fmt(revenue), '💰', 'bg-green-50 text-green-700'],
+      ['در انتظار تایید', fmt(pending), '⏳', 'bg-amber-50 text-amber-700'],
+      ['سفارش‌های فعال', fmt(active), '🔄', 'bg-indigo-50 text-indigo-700'],
+    ];
+    const week=[120,340,210,480,300,540,390], max=Math.max.apply(null,week), days=['ش','ی','د','س','چ','پ','ج'];
+    return '<h2 class="text-2xl font-bold mb-6">داشبورد مدیریت</h2>'+
+    '<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">'+
+      cards.map(function(c){ return '<div class="bg-white rounded-2xl p-5 shadow-sm"><div class="w-10 h-10 rounded-xl '+c[3]+' flex items-center justify-center text-xl mb-3">'+c[2]+'</div><div class="text-2xl font-extrabold">'+c[1]+'</div><div class="text-sm text-slate-500">'+c[0]+'</div></div>'; }).join('')+
+    '</div>'+
+    '<div class="grid lg:grid-cols-2 gap-6"><div class="bg-white rounded-2xl p-6 shadow-sm"><h3 class="font-bold mb-4">فروش هفت روز اخیر</h3><div class="flex items-end justify-between gap-2 h-40">'+
+      week.map(function(v,i){ return '<div class="flex-1 flex flex-col items-center gap-2"><div class="w-full bg-brand-500 rounded-t-lg" style="height:'+((v/max)*100)+'%"></div><span class="text-[10px] text-slate-400">'+days[i]+'</span></div>'; }).join('')+
+    '</div></div>'+
+    '<div class="bg-white rounded-2xl p-6 shadow-sm"><h3 class="font-bold mb-4">مناطق تحت پوشش</h3><div class="flex flex-wrap gap-2">'+
+      zones.map(function(z){ return '<span class="bg-slate-100 px-3 py-1.5 rounded-lg text-sm">'+z+'</span>'; }).join('')+
+      '<button onclick="toast(\'افزودن منطقه (دمو)\')" class="border-2 border-dashed border-slate-300 text-slate-400 px-3 py-1.5 rounded-lg text-sm">+ منطقه</button>'+
+    '</div></div></div>';
+  },
+
+  adminOrders: function(){ return ''+
+    '<div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">مدیریت سفارش‌ها</h2><span class="text-sm text-slate-500">'+fmt(orders.length)+' سفارش</span></div>'+
+    '<div class="bg-white rounded-2xl shadow-sm overflow-x-auto"><table class="w-full text-sm text-right whitespace-nowrap"><thead class="bg-slate-50 text-slate-500"><tr><th class="p-4">شماره</th><th class="p-4">مشتری</th><th class="p-4">منطقه</th><th class="p-4">مبلغ</th><th class="p-4">تغییر وضعیت</th></tr></thead><tbody>'+
+      orders.map(function(o){ return '<tr class="border-t hover:bg-slate-50"><td class="p-4 font-bold">#'+o.id+'</td><td class="p-4">'+o.customer+'<div class="text-xs text-slate-400">'+o.phone+'</div></td><td class="p-4">'+o.zone+'</td><td class="p-4">'+fmt(o.total)+'</td><td class="p-4"><select onchange="updateStatus(\''+o.id+'\', this.value)" class="border rounded-lg p-2 text-xs bg-white">'+Object.keys(STATUS).map(function(s){ return '<option value="'+s+'" '+(s===o.status?'selected':'')+'>'+STATUS[s].label+'</option>'; }).join('')+'</select></td></tr>'; }).join('')+
+    '</tbody></table></div>';
+  },
+
+  adminUsers: function(){ return ''+
+    '<h2 class="text-2xl font-bold mb-6">مدیریت کاربران</h2>'+
+    '<div class="bg-white rounded-2xl shadow-sm overflow-x-auto"><table class="w-full text-sm text-right whitespace-nowrap"><thead class="bg-slate-50 text-slate-500"><tr><th class="p-4">نام</th><th class="p-4">موبایل</th><th class="p-4">تعداد سفارش</th><th class="p-4">اشتراک</th><th class="p-4">عضویت</th></tr></thead><tbody>'+
+      users.map(function(u){ return '<tr class="border-t hover:bg-slate-50"><td class="p-4 font-bold">'+u.name+'</td><td class="p-4">'+u.phone+'</td><td class="p-4">'+fmt(u.orders)+'</td><td class="p-4">'+(u.sub==='—'?'<span class="text-slate-400">—</span>':'<span class="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded-lg">'+u.sub+'</span>')+'</td><td class="p-4 text-slate-500">'+u.joined+'</td></tr>'; }).join('')+
+    '</tbody></table></div>';
+  },
+
+  adminPricing: function(){ return ''+
+    '<div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">تعریف قیمت خدمات</h2><button onclick="toast(\'ذخیره شد (دمو)\')" class="bg-brand-600 text-white text-sm font-bold px-4 py-2 rounded-xl">ذخیره تغییرات</button></div>'+
+    '<div class="bg-white rounded-2xl p-6 shadow-sm mb-6"><h3 class="font-bold mb-4">ضریب نوع خدمت</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-4">'+
+      services.map(function(s){ return '<div class="border rounded-xl p-4"><div class="text-2xl mb-2">'+s.icon+'</div><div class="text-sm font-medium mb-2">'+s.name+'</div><input type="number" value="'+s.factor+'" step="0.1" class="w-full border rounded-lg p-2 text-sm" /></div>'; }).join('')+
+    '</div></div>'+
+    '<div class="bg-white rounded-2xl p-6 shadow-sm"><h3 class="font-bold mb-4">قیمت پایه آیتم‌ها (تومان)</h3><div class="space-y-3">'+
+      items.map(function(it){ return '<div class="flex items-center justify-between border rounded-xl p-3"><div class="flex items-center gap-3"><span class="text-2xl">'+it.icon+'</span><span class="font-medium">'+it.name+'</span></div><input type="number" value="'+it.price+'" step="5000" class="w-40 border rounded-lg p-2 text-sm text-left" dir="ltr" /></div>'; }).join('')+
+    '</div></div>';
+  },
+
+  adminDiscounts: function(){ return ''+
+    '<div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">کدهای تخفیف</h2><button onclick="toast(\'فرم افزودن کد (دمو)\')" class="bg-brand-600 text-white text-sm font-bold px-4 py-2 rounded-xl">+ کد جدید</button></div>'+
+    '<div class="bg-white rounded-2xl shadow-sm overflow-x-auto"><table class="w-full text-sm text-right whitespace-nowrap"><thead class="bg-slate-50 text-slate-500"><tr><th class="p-4">کد</th><th class="p-4">درصد تخفیف</th><th class="p-4">تعداد استفاده</th><th class="p-4">وضعیت</th></tr></thead><tbody>'+
+      discountCodes.map(function(d){ return '<tr class="border-t hover:bg-slate-50"><td class="p-4 font-bold" dir="ltr">'+d.code+'</td><td class="p-4">'+fmt(d.percent)+'٪</td><td class="p-4">'+fmt(d.uses)+'</td><td class="p-4">'+(d.active?'<span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-lg">فعال</span>':'<span class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-lg">غیرفعال</span>')+'</td></tr>'; }).join('')+
+    '</tbody></table></div>';
+  },
+
+  opTasks: function(){
+    const myTasks = orders.filter(function(o){ return o.assigned && o.status!=='delivered' && o.status!=='cancelled'; });
+    const body = myTasks.map(function(o){ return '<div class="bg-white rounded-2xl p-5 shadow-sm"><div class="flex items-start justify-between mb-3"><div><div class="font-bold text-lg">#'+o.id+' — '+o.customer+'</div><div class="text-sm text-slate-500">📞 '+o.phone+'</div><div class="text-sm text-slate-500">📍 منطقه '+o.zone+'</div></div><span class="text-xs px-3 py-1 rounded-full '+STATUS[o.status].color+'">'+STATUS[o.status].label+'</span></div><div class="flex flex-wrap gap-2 pt-3 border-t">'+opActions(o)+'</div></div>'; }).join('');
+    return '<div class="flex items-center justify-between mb-6"><h2 class="text-2xl font-bold">سفارش‌های تخصیص‌یافته</h2><span class="bg-brand-100 text-brand-700 text-sm px-3 py-1 rounded-full">'+fmt(myTasks.length)+' فعال</span></div>'+
+      '<div class="space-y-4">'+(body || '<div class="text-center py-16 text-slate-400 bg-white rounded-2xl">سفارش فعالی ندارید 🎉</div>')+'</div>';
+  },
+
+  opHistory: function(){
+    const done = orders.filter(function(o){ return o.status==='delivered'; });
+    const body = done.map(function(o){ return '<div class="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between"><div><div class="font-bold">#'+o.id+' — '+o.customer+'</div><div class="text-sm text-slate-500">📍 '+o.zone+' · '+o.date+'</div></div><span class="text-xs px-3 py-1 rounded-full '+STATUS['delivered'].color+'">تحویل شد</span></div>'; }).join('');
+    return '<h2 class="text-2xl font-bold mb-6">سفارش‌های انجام‌شده</h2><div class="space-y-3">'+(body || '<div class="text-center py-16 text-slate-400 bg-white rounded-2xl">هنوز سفارشی تحویل نداده‌اید</div>')+'</div>';
+  },
+};
+
+function opActions(o){
+  function btn(label,next,cls){ return '<button onclick="opUpdate(\''+o.id+'\',\''+next+'\')" class="'+cls+' text-sm font-bold px-4 py-2 rounded-xl">'+label+'</button>'; }
+  switch(o.status){
+    case 'confirmed': return btn('✅ ثبت دریافت لباس','picked_up','bg-indigo-600 text-white');
+    case 'picked_up': return btn('🧺 تحویل به شستشو','processing','bg-amber-500 text-white');
+    case 'processing':return btn('📦 آماده تحویل شد','ready','bg-purple-600 text-white');
+    case 'ready':     return btn('🚚 حرکت به سمت مشتری','out_for_delivery','bg-cyan-600 text-white');
+    case 'out_for_delivery': return btn('🎉 ثبت تحویل نهایی','delivered','bg-green-600 text-white');
+    case 'pending':   return '<span class="text-sm text-slate-400">در انتظار تایید ادمین</span>';
+    default: return '';
+  }
+}
+
+/* ================= منطق سفارش ================= */
+function changeQty(id,delta){
+  cart.items[id]=Math.max(0,(cart.items[id]||0)+delta);
+  if(cart.items[id]===0) delete cart.items[id];
+  const el=document.getElementById('qty-'+id); if(el) el.textContent=cart.items[id]||0;
+  refreshSummary();
+}
+function refreshOrder(){
+  document.querySelectorAll('.service-btn').forEach(function(b){
+    const on=b.dataset.service===cart.service;
+    b.className='service-btn border-2 rounded-xl p-3 text-center '+(on?'border-brand-600 bg-brand-50':'border-slate-200');
+  });
+  refreshSummary();
+}
+function calcTotal(){
+  const factor=services.find(function(s){ return s.id===cart.service; }).factor;
+  let sub=0;
+  for(const id in cart.items){ const it=items.find(function(x){ return x.id===id; }); sub+=it.price*cart.items[id]*factor; }
+  const discountAmount=Math.round(sub*cart.discount);
+  const delivery = (sub>0 && sub<300000) ? 30000 : 0;
+  return { sub:sub, discountAmount:discountAmount, delivery:delivery, total: sub-discountAmount+delivery };
+}
+function refreshSummary(){
+  const s=document.getElementById('summary'); if(!s) return;
+  const factor=services.find(function(x){ return x.id===cart.service; }).factor;
+  const rows=[];
+  for(const id in cart.items){ const it=items.find(function(x){ return x.id===id; }); rows.push('<div class="flex justify-between"><span>'+it.name+' ×'+fmt(cart.items[id])+'</span><span>'+fmt(it.price*cart.items[id]*factor)+'</span></div>'); }
+  s.innerHTML = rows.length ? rows.join('') : '<div class="text-slate-400 text-center py-4">هنوز آیتمی انتخاب نشده</div>';
+  const t=calcTotal();
+  document.getElementById('total-box').innerHTML =
+    '<div class="flex justify-between text-sm mb-1"><span>جمع</span><span>'+fmt(t.sub)+' تومان</span></div>'+
+    (t.discountAmount?'<div class="flex justify-between text-sm mb-1 text-green-600"><span>تخفیف</span><span>−'+fmt(t.discountAmount)+'</span></div>':'')+
+    '<div class="flex justify-between text-sm mb-1"><span>هزینه ارسال</span><span>'+(t.delivery?fmt(t.delivery)+' تومان':'رایگان')+'</span></div>'+
+    '<div class="flex justify-between font-bold text-lg mt-2"><span>مبلغ نهایی</span><span>'+fmt(t.total)+' تومان</span></div>'+
+    '<div class="text-xs text-slate-400 mt-1">* قیمت تقریبی است و پس از بررسی نهایی می‌شود</div>';
+}
+function applyDiscount(){
+  const code=(document.getElementById('discount-input').value||'').trim().toUpperCase();
+  const map={ 'PAK20':0.2, 'WELCOME':0.15, 'PAK10':0.1 };
+  if(map[code]){ cart.discount=map[code]; toast('کد تخفیف اعمال شد ✔'); }
+  else { cart.discount=0; toast('کد تخفیف نامعتبر است ✗'); }
+  refreshSummary();
+}
+function checkout(){
+  if(Object.keys(cart.items).length===0){ toast('لطفاً حداقل یک آیتم انتخاب کنید'); return; }
+  toast('سفارش ثبت شد! در حال انتقال به درگاه پرداخت... (دمو)');
+  setTimeout(function(){ cart={service:'normal',items:{},discount:0}; go('history'); },1500);
+}
+
+function updateStatus(id,status){
+  const o=orders.find(function(x){ return x.id===id; });
+  if(o){ o.status=status; toast('وضعیت سفارش #'+id+' به «'+STATUS[status].label+'» تغییر کرد'); }
+}
+function opUpdate(id,status){
+  const o=orders.find(function(x){ return x.id===id; });
+  if(o){ o.status=status; toast('سفارش #'+id+': '+STATUS[status].label+' ✔'); go('opTasks'); }
+}
+
+/* ================= شروع ================= */
+renderNavs();
+go('home');
+</script>
+</body>
+</html>
+
+							<script>
+                            	
+							</script>
+                        </body>
+                        </html>
+                    
